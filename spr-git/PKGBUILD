@@ -1,0 +1,49 @@
+# Maintainer: Bryce Beagle <bryce dot beagle at gmail dot com>
+_pkgname=spr
+pkgname=$_pkgname-git
+pkgver=0.9.0.r1.g51f9f7d
+pkgrel=1
+pkgdesc="Stacked pull requests on GitHub"
+license=('MIT')
+arch=('any')
+url="https://ejoffe.github.io/spr/"
+makedepends=('git' 'go')
+provides=("$_pkgname")
+conflicts=("$_pkgname")
+
+source=("git+https://github.com/ejoffe/spr.git")
+md5sums=('SKIP')
+
+pkgver() {
+	cd "$_pkgname"
+	git describe --long --tags | sed 's/^v//;s/\([^-]*-g\)/r\1/;s/-/./g'
+}
+
+prepare() {
+	cd "$_pkgname"
+	mkdir -p build/
+}
+
+build() {
+	# https://wiki.archlinux.org/title/Go_package_guidelines#Flags_and_build_options
+	export CGO_CPPFLAGS="${CPPFLAGS}"
+	export CGO_CFLAGS="${CFLAGS}"
+	export CGO_CXXFLAGS="${CXXFLAGS}"
+	export CGO_LDFLAGS="${LDFLAGS}"
+	export GOFLAGS="-buildmode=pie -trimpath -ldflags=-linkmode=external -mod=readonly -modcacherw"
+
+	cd "$_pkgname"
+	go build -o build ./cmd/spr
+	go build -o build ./cmd/amend
+	go build -o build ./cmd/commithook
+	go build -o build ./cmd/reword
+}
+
+package() {
+	cd "$_pkgname"
+	install -Dm755 build/spr "$pkgdir"/usr/bin/git-spr
+	install -Dm755 build/amend "$pkgdir"/usr/bin/git-amend
+	install -Dm755 build/commithook "$pkgdir"/usr/bin/spr_commit_hook
+	install -Dm755 build/reword "$pkgdir"/usr/bin/spr_reword_helper
+}
+
